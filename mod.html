@@ -15,7 +15,7 @@
         
         header {
             width: 100%; max-width: 1200px; display: flex;
-            justify-content: space-between; align-items: center;
+            justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 10px;
             margin-bottom: 20px; border-bottom: 2px solid #45f3ff; padding-bottom: 10px;
         }
         
@@ -33,16 +33,16 @@
             padding: 20px; width: 100%; max-width: 1200px; margin-bottom: 20px; 
         }
 
-        .auth-card { max-width: 400px; margin-top: 50px; text-align: center; }
+        .auth-card { max-width: 420px; margin-top: 40px; text-align: center; }
         
-        input[type="password"] { 
-            width: 100%; padding: 12px; margin: 15px 0; border-radius: 5px; 
-            border: 1px solid #45f3ff; background: #0b0c10; color: #fff; text-align: center; font-size: 16px;
+        input[type="text"], input[type="password"] { 
+            width: 100%; padding: 12px; margin: 8px 0; border-radius: 5px; 
+            border: 1px solid #45f3ff; background: #0b0c10; color: #fff; font-size: 15px;
         }
 
         .btn { 
             background: #1f2833; color: #45f3ff; border: 2px solid #45f3ff; 
-            padding: 12px; border-radius: 5px; cursor: pointer; font-weight: bold; width: 100%; text-transform: uppercase;
+            padding: 12px; border-radius: 5px; cursor: pointer; font-weight: bold; width: 100%; text-transform: uppercase; margin-top: 10px;
         }
         .btn:hover { background: #45f3ff; color: #1f2833; }
 
@@ -58,7 +58,6 @@
             border-radius: 6px; font-weight: 900; cursor: pointer; text-transform: uppercase; flex: 1;
         }
 
-        /* BOUTON D'ACTUALISATION DE LA LISTE DES DÉFIS */
         .btn-refresh-sheet {
             background: #45f3ff; color: #0b0c10; border: none; padding: 8px 16px;
             border-radius: 5px; font-weight: 900; cursor: pointer; text-transform: uppercase;
@@ -66,11 +65,8 @@
         }
         .btn-refresh-sheet:hover { background: #00e676; box-shadow: 0 0 15px rgba(0, 230, 118, 0.6); }
 
-        .card-header-flex {
-            display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 10px;
-        }
-
-        /* AJOUT DU SCROLL POUR DÉFIS SUR MOBILE / ÉCRAN */
+        .card-header-flex { display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 10px; }
+        
         .defis-grid { 
             display: grid; grid-template-columns: repeat(2, 1fr); gap: 10px; margin-top: 15px;
             max-height: 500px; overflow-y: auto; padding-right: 5px;
@@ -86,7 +82,6 @@
         .btn-toggle { padding: 6px 14px; border-radius: 4px; border: none; cursor: pointer; font-weight: bold; flex-shrink: 0; margin-left: 10px; }
         .hidden { display: none !important; }
 
-        /* SCROLL HORIZONTAL POUR LE TABLEAU SUR SMARTPHONE */
         .table-wrapper { width: 100%; overflow-x: auto; -webkit-overflow-scrolling: touch; }
         .players-table { width: 100%; border-collapse: collapse; margin-top: 10px; min-width: 500px; }
         .players-table th, .players-table td { border: 1px solid #354252; padding: 10px; text-align: left; vertical-align: middle; }
@@ -115,14 +110,19 @@
 
     <header>
         <h1>🔒 Panneau Modération</h1>
-        <a href="index.html" class="btn-grid">🎮 Voir ma Grille Joueur</a>
+        <div style="display:flex; gap:10px; align-items:center;">
+            <span id="loggedModName" style="font-size:13px; color:#45f3ff; font-weight:bold;"></span>
+            <a href="index.html" class="btn-grid">🎮 Voir ma Grille Joueur</a>
+            <button id="modLogoutBtn" class="btn-delete-user hidden" onclick="logoutMod()">Déconnexion</button>
+        </div>
     </header>
 
     <div id="authCard" class="card auth-card">
-        <h3>Accès Restreint</h3>
-        <p style="font-size:13px; opacity:0.8;">Entrez le mot de passe modérateur :</p>
-        <input type="password" id="modPass" placeholder="••••••••">
-        <button class="btn" onclick="checkPassword()">Se connecter</button>
+        <h3>Espace Modération</h3>
+        <p style="font-size:13px; opacity:0.8;">Connecte-toi avec ton compte modérateur :</p>
+        <input type="text" id="modUser" placeholder="Pseudo Modérateur (ex: PierotStream)">
+        <input type="password" id="modPass" placeholder="Mot de passe secret">
+        <button class="btn" onclick="checkModAuth()">Se connecter</button>
     </div>
 
     <div id="dashboard" class="hidden" style="width: 100%; display: flex; flex-direction: column; align-items: center;">
@@ -178,38 +178,67 @@
         firebase.initializeApp(firebaseConfig);
         const db = firebase.database();
         const sheetId = "1cLz3yqcSrUE2Jet8pil48VfdQTjPODQFSER8P3_OY-U";
-        
+
+        const MOD_USERS = {
+            "PierotStream": "pierotS2191",
+            "LaMiss26": "LaMiss1192",
+            "Remimodo26": "modo0826"
+        };
+
         let validatedDefis = {};
         let allowUserRegen = false;
 
-        function checkPassword() {
-            if(document.getElementById('modPass').value === "pierot2026") {
-                document.getElementById('authCard').classList.add('hidden');
-                document.getElementById('dashboard').classList.remove('hidden');
-                
-                db.ref('validated_defis').on('value', snapshot => {
-                    validatedDefis = snapshot.val() || {};
-                    loadDefis();
-                });
+        let currentMod = localStorage.getItem('bingo_mod_session') || "";
+        if(currentMod && MOD_USERS[currentMod]) {
+            showModDashboard(currentMod);
+        }
 
-                db.ref('players').on('value', snapshot => {
-                    renderPlayers(snapshot.val() || {});
-                });
+        function checkModAuth() {
+            const user = document.getElementById('modUser').value.trim();
+            const pass = document.getElementById('modPass').value.trim();
 
-                db.ref('settings/allowRegen').on('value', snapshot => {
-                    allowUserRegen = snapshot.val() || false;
-                    const btn = document.getElementById('toggleRegenBtn');
-                    if(allowUserRegen) {
-                        btn.textContent = "🎲 Bouton Régénérer : ACTIVÉ ✔";
-                        btn.style.background = "#00e676";
-                        btn.style.color = "#000";
-                    } else {
-                        btn.textContent = "🎲 Bouton Régénérer : DÉSACTIVÉ ✖";
-                        btn.style.background = "#7928ca";
-                        btn.style.color = "#fff";
-                    }
-                });
-            } else { alert("Mot de passe incorrect !"); }
+            if(MOD_USERS[user] && MOD_USERS[user] === pass) {
+                localStorage.setItem('bingo_mod_session', user);
+                localStorage.setItem('bingo_user', user);
+                showModDashboard(user);
+            } else {
+                alert("Pseudo ou mot de passe modérateur incorrect !");
+            }
+        }
+
+        function showModDashboard(user) {
+            document.getElementById('authCard').classList.add('hidden');
+            document.getElementById('dashboard').classList.remove('hidden');
+            document.getElementById('loggedModName').textContent = `Modo: ${user}`;
+            document.getElementById('modLogoutBtn').classList.remove('hidden');
+
+            db.ref('validated_defis').on('value', snapshot => {
+                validatedDefis = snapshot.val() || {};
+                loadDefis();
+            });
+
+            db.ref('players').on('value', snapshot => {
+                renderPlayers(snapshot.val() || {});
+            });
+
+            db.ref('settings/allowRegen').on('value', snapshot => {
+                allowUserRegen = snapshot.val() || false;
+                const btn = document.getElementById('toggleRegenBtn');
+                if(allowUserRegen) {
+                    btn.textContent = "🎲 Bouton Régénérer : ACTIVÉ ✔";
+                    btn.style.background = "#00e676";
+                    btn.style.color = "#000";
+                } else {
+                    btn.textContent = "🎲 Bouton Régénérer : DÉSACTIVÉ ✖";
+                    btn.style.background = "#7928ca";
+                    btn.style.color = "#fff";
+                }
+            });
+        }
+
+        function logoutMod() {
+            localStorage.removeItem('bingo_mod_session');
+            location.reload();
         }
 
         async function loadDefis() {
