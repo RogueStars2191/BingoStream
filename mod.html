@@ -70,7 +70,11 @@
             display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 10px;
         }
 
-        .defis-grid { display: grid; grid-template-columns: repeat(2, 1fr); gap: 10px; margin-top: 15px; }
+        /* AJOUT DU SCROLL POUR DÉFIS SUR MOBILE / ÉCRAN */
+        .defis-grid { 
+            display: grid; grid-template-columns: repeat(2, 1fr); gap: 10px; margin-top: 15px;
+            max-height: 500px; overflow-y: auto; padding-right: 5px;
+        }
 
         .defi-item { 
             display: flex; justify-content: space-between; align-items: center; 
@@ -82,7 +86,9 @@
         .btn-toggle { padding: 6px 14px; border-radius: 4px; border: none; cursor: pointer; font-weight: bold; flex-shrink: 0; margin-left: 10px; }
         .hidden { display: none !important; }
 
-        .players-table { width: 100%; border-collapse: collapse; margin-top: 10px; }
+        /* SCROLL HORIZONTAL POUR LE TABLEAU SUR SMARTPHONE */
+        .table-wrapper { width: 100%; overflow-x: auto; -webkit-overflow-scrolling: touch; }
+        .players-table { width: 100%; border-collapse: collapse; margin-top: 10px; min-width: 500px; }
         .players-table th, .players-table td { border: 1px solid #354252; padding: 10px; text-align: left; vertical-align: middle; }
         .players-table th { background: #0b0c10; color: #45f3ff; }
         
@@ -99,7 +105,10 @@
         }
         .btn-delete-user:hover { background: #cc0000; }
 
-        @media (max-width: 768px) { .defis-grid { grid-template-columns: 1fr; } }
+        @media (max-width: 768px) { 
+            body { padding: 10px; }
+            .defis-grid { grid-template-columns: 1fr; max-height: 400px; } 
+        }
     </style>
 </head>
 <body>
@@ -136,17 +145,19 @@
 
         <div class="card">
             <h3>📊 Gestion des Inscrits & Présence</h3>
-            <table class="players-table">
-                <thead>
-                    <tr>
-                        <th>Statut / Pseudo</th>
-                        <th>Mot de Passe</th>
-                        <th>Bingos Validés</th>
-                        <th>Action</th>
-                    </tr>
-                </thead>
-                <tbody id="playersList"></tbody>
-            </table>
+            <div class="table-wrapper">
+                <table class="players-table">
+                    <thead>
+                        <tr>
+                            <th>Statut / Pseudo</th>
+                            <th>Mot de Passe</th>
+                            <th>Bingos Validés</th>
+                            <th>Action</th>
+                        </tr>
+                    </thead>
+                    <tbody id="playersList"></tbody>
+                </table>
+            </div>
         </div>
     </div>
 
