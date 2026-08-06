@@ -48,6 +48,9 @@
         <p id="alertUser">PierotStream (x1 Bingo)</p>
     </div>
 
+    <!-- Élément Audio pour l'alerte sonore -->
+    <audio id="bingoAudio" src="https://assets.mixkit.co/active_storage/sfx/2018/2018-preview.mp3" preload="auto"></audio>
+
     <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-app-compat.js"></script>
     <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-database-compat.js"></script>
 
@@ -93,10 +96,18 @@
         function triggerBingoAlert(username, count) {
             const box = document.getElementById('alertBox');
             const userText = document.getElementById('alertUser');
+            const audio = document.getElementById('bingoAudio');
             
             userText.textContent = `${username.toUpperCase()} (x${count} Bingo${count > 1 ? 's' : ''})`;
             box.classList.add('show');
 
+            // Lancer le son d'alerte
+            if (audio) {
+                audio.currentTime = 0;
+                audio.play().catch(e => console.log("Audio play error:", e));
+            }
+
+            // Lancer les confettis
             confetti({
                 particleCount: 150,
                 spread: 90,
