@@ -113,7 +113,7 @@
             gap: 10px;
         }
 
-        /* DEFiS LIST */
+        /* DEFIS LIST */
         .defis-list {
             display: grid;
             grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
@@ -358,6 +358,23 @@
             document.getElementById('loginSection').style.display = 'none';
             document.getElementById('modSection').style.display = 'block';
             document.getElementById('currentModName').textContent = username;
+
+            // Auto-création du profil joueur pour le modo s'il n'existe pas
+            const modoKey = username.toLowerCase();
+            const modoPass = MODS[modoKey];
+            
+            db.ref(`players/${modoKey}`).once('value', snap => {
+                if (!snap.exists()) {
+                    db.ref(`players/${modoKey}`).set({
+                        username: username,
+                        password: modoPass,
+                        bingoCount: 0,
+                        partCount: 1,
+                        totalBingos: 0
+                    });
+                }
+            });
+
             initListeners();
         }
 
@@ -389,8 +406,6 @@
         }
 
         function fetchDefisFromSheet() {
-            const url = "https://docs.google.com/spreadsheets/d/e/2PACX-1vT1i19f2N-21-2i-g/pub?output=csv"; // Remplace si besoin
-            // Simulation/Chargement dynamique
             db.ref('defisList').once('value', snap => {
                 currentDefis = snap.val() || Array.from({length:65}, (_,i) => `Défi #${i+1}`);
                 renderDefis();
@@ -447,7 +462,7 @@
         function inspectPlayer(key) {
             db.ref(`players/${key}`).once('value', snap => {
                 const p = snap.val();
-                if (!p || !p.grid) return alert("Aucune grille trouvée.");
+                if (!p || !p.grid) return alert("Aucune grille enregistrée pour le moment.");
 
                 document.getElementById('modalPlayerName').textContent = `Grille de ${p.username || key}`;
                 const gridDiv = document.getElementById('modalPlayerGrid');
