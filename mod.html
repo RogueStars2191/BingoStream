@@ -276,6 +276,7 @@
         <!-- VALIDATION DEFIS -->
         <div class="section-card">
             <h2>⚡ Validation des Défis</h2>
+            <button class="btn-action" style="margin-bottom: 12px;" onclick="fetchDefisFromSheet()">🔄 RECHARGER GOOGLE SHEETS</button>
             <div id="defisList" class="defis-list"></div>
         </div>
 
@@ -400,11 +401,39 @@
                 renderPlayers(snap.val() || {});
             });
 
-            // Charge directement les défis depuis Firebase
+            // Charge la liste actuelle depuis Firebase
             db.ref('defisList').on('value', snap => {
-                currentDefis = snap.val() || [];
-                renderDefis();
+                const val = snap.val();
+                if (val && Array.isArray(val)) {
+                    currentDefis = val;
+                    renderDefis();
+                }
             });
+        }
+
+        function fetchDefisFromSheet() {
+            // URL de ton Google Sheet CSV public
+            const sheetUrl = "https://docs.google.com/spreadsheets/d/e/2PACX-1vT1i19f2N-21-2i-g/pub?output=csv";
+            
+            fetch(sheetUrl)
+                .then(res => res.text())
+                .then(text => {
+                    const lines = text.split('\n')
+                        .map(l => l.trim())
+                        .filter(l => l.length > 0 && !l.includes('function') && !l.includes('Object.is'));
+                    
+                    const cleanDefis = lines.map(l => l.replace(/^"|"$/g, '').split(',')[0]);
+                    
+                    if (cleanDefis.length > 0) {
+                        currentDefis = cleanDefis;
+                        db.ref('defisList').set(cleanDefis);
+                        renderDefis();
+                        alert("Google Sheets rechargé avec succès !");
+                    }
+                })
+                .catch(err => {
+                    alert("Erreur de chargement Google Sheets. Vérifiez le lien CSV.");
+                });
         }
 
         function renderDefis() {
@@ -412,7 +441,7 @@
             container.innerHTML = '';
 
             if (currentDefis.length === 0) {
-                container.innerHTML = '<p style="color:#888;">Chargement des défis...</p>';
+                container.innerHTML = '<p style="color:#888;">Aucun défi chargé. Cliquez sur "RECHARGER GOOGLE SHEETS".</p>';
                 return;
             }
 
