@@ -1,0 +1,392 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Modération Bingo - PierotStream</title>
+    <link href="https://fonts.googleapis.com/css2?family=Montserrat:wght@400;700;900&display=swap" rel="stylesheet">
+    <style>
+        * { box-sizing: border-box; }
+        body { 
+            margin: 0; padding: 20px; background: #0b0c10; 
+            font-family: 'Montserrat', sans-serif; color: #fff; 
+            display: flex; flex-direction: column; align-items: center; 
+        }
+        
+        header {
+            width: 100%; max-width: 1200px; display: flex;
+            justify-content: space-between; align-items: center;
+            margin-bottom: 20px; border-bottom: 2px solid #45f3ff; padding-bottom: 10px;
+        }
+        
+        h1 { color: #45f3ff; text-transform: uppercase; margin: 0; font-size: 22px; }
+
+        .btn-grid {
+            background: #1f2833; color: #45f3ff; border: 2px solid #45f3ff;
+            padding: 8px 16px; border-radius: 5px; font-weight: bold;
+            cursor: pointer; text-decoration: none; display: inline-flex; align-items: center; gap: 8px;
+        }
+        .btn-grid:hover { background: #45f3ff; color: #1f2833; }
+        
+        .card { 
+            background: #1f2833; border: 1px solid #45f3ff; border-radius: 8px; 
+            padding: 20px; width: 100%; max-width: 1200px; margin-bottom: 20px; 
+        }
+
+        .auth-card { max-width: 420px; margin-top: 40px; text-align: center; }
+        
+        input[type="text"], input[type="password"] { 
+            width: 100%; padding: 12px; margin: 8px 0; border-radius: 5px; 
+            border: 1px solid #45f3ff; background: #0b0c10; color: #fff; font-size: 15px;
+        }
+
+        .btn { 
+            background: #1f2833; color: #45f3ff; border: 2px solid #45f3ff; 
+            padding: 12px; border-radius: 5px; cursor: pointer; font-weight: bold; width: 100%; text-transform: uppercase; margin-top: 10px;
+        }
+        .btn:hover { background: #45f3ff; color: #1f2833; }
+
+        .admin-controls { display: flex; gap: 15px; margin-bottom: 10px; flex-wrap: wrap; }
+        .btn-danger {
+            background: #ff007f; color: #fff; border: none; padding: 12px 20px;
+            border-radius: 6px; font-weight: 900; cursor: pointer; text-transform: uppercase; flex: 1;
+        }
+        .btn-danger:hover { background: #d00068; box-shadow: 0 0 15px rgba(255, 0, 127, 0.5); }
+        
+        .btn-toggle-regen {
+            background: #7928ca; color: #fff; border: none; padding: 12px 20px;
+            border-radius: 6px; font-weight: 900; cursor: pointer; text-transform: uppercase; flex: 1;
+        }
+
+        .btn-refresh-sheet {
+            background: #45f3ff; color: #0b0c10; border: none; padding: 8px 16px;
+            border-radius: 5px; font-weight: 900; cursor: pointer; text-transform: uppercase;
+            display: inline-flex; align-items: center; gap: 6px; transition: all 0.3s ease;
+        }
+        .btn-refresh-sheet:hover { background: #00e676; box-shadow: 0 0 15px rgba(0, 230, 118, 0.6); }
+
+        .card-header-flex { display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 10px; }
+        .defis-grid { display: grid; grid-template-columns: repeat(2, 1fr); gap: 10px; margin-top: 15px; }
+
+        .defi-item { 
+            display: flex; justify-content: space-between; align-items: center; 
+            background: #0b0c10; padding: 10px 12px; border-radius: 5px; 
+            border-left: 4px solid #ff007f; font-size: 13px;
+        }
+        .defi-item.active { border-left-color: #00e676; background: #13251c; }
+        
+        .btn-toggle { padding: 6px 14px; border-radius: 4px; border: none; cursor: pointer; font-weight: bold; flex-shrink: 0; margin-left: 10px; }
+        .hidden { display: none !important; }
+
+        .players-table { width: 100%; border-collapse: collapse; margin-top: 10px; }
+        .players-table th, .players-table td { border: 1px solid #354252; padding: 10px; text-align: left; vertical-align: middle; }
+        .players-table th { background: #0b0c10; color: #45f3ff; }
+        
+        .status-dot { display: inline-block; width: 10px; height: 10px; border-radius: 50%; margin-right: 6px; }
+        .status-online { background-color: #00e676; box-shadow: 0 0 8px #00e676; }
+        .status-offline { background-color: #888888; }
+
+        .bingo-badge { background: #ff007f; color: #fff; padding: 3px 8px; border-radius: 4px; font-weight: bold; }
+        .pass-code { font-family: monospace; background: #0b0c10; padding: 3px 6px; border-radius: 4px; color: #00e676; border: 1px dashed #00e676; }
+        .stats-badge { background: #0b0c10; border: 1px solid #45f3ff; color: #45f3ff; padding: 2px 6px; border-radius: 4px; font-size: 11px; font-weight: bold; }
+
+        .btn-delete-user {
+            background: #ff3333; color: white; border: none; padding: 6px 10px;
+            border-radius: 4px; font-weight: bold; cursor: pointer; font-size: 12px;
+        }
+
+        @media (max-width: 768px) { .defis-grid { grid-template-columns: 1fr; } }
+    </style>
+</head>
+<body>
+
+    <header>
+        <h1>🔒 Panneau Modération</h1>
+        <div style="display:flex; gap:10px; align-items:center;">
+            <span id="loggedModName" style="font-size:13px; color:#45f3ff; font-weight:bold;"></span>
+            <button class="btn-grid" onclick="goToMyGrid()">🎮 Voir ma Grille Joueur</button>
+            <button id="modLogoutBtn" class="btn-delete-user hidden" onclick="logoutMod()">Déconnexion Modo</button>
+        </div>
+    </header>
+
+    <div id="authCard" class="card auth-card">
+        <h3>Espace Modération</h3>
+        <p style="font-size:13px; opacity:0.8;">Connecte-toi avec ton compte modérateur :</p>
+        <input type="text" id="modUser" placeholder="Pseudo Modérateur (ex: PierotStream)">
+        <input type="password" id="modPass" placeholder="Mot de passe secret">
+        <button class="btn" onclick="checkModAuth()">Se connecter</button>
+    </div>
+
+    <div id="dashboard" class="hidden" style="width: 100%; display: flex; flex-direction: column; align-items: center;">
+        
+        <div class="card">
+            <h3>⚙️ Contrôle de la Partie</h3>
+            <div class="admin-controls">
+                <button class="btn-danger" onclick="resetAllGame()">🔄 Archiver & Lancer une Nouvelle Partie</button>
+                <button id="toggleRegenBtn" class="btn-toggle-regen" onclick="toggleUserRegen()">🎲 Bouton Régénérer : DÉSACTIVÉ</button>
+            </div>
+        </div>
+
+        <div class="card">
+            <div class="card-header-flex">
+                <h3 style="margin:0;">⚡ Validation des Défis (2 Colonnes)</h3>
+                <button class="btn-refresh-sheet" onclick="loadDefis()">🔄 Recharger Google Sheets</button>
+            </div>
+            <div id="defisList" class="defis-grid">Chargement des défis...</div>
+        </div>
+
+        <div class="card">
+            <h3>📊 Gestion des Inscrits & Stats Globale</h3>
+            <table class="players-table">
+                <thead>
+                    <tr>
+                        <th>Statut / Pseudo</th>
+                        <th>Mot de Passe</th>
+                        <th>Session Direct</th>
+                        <th>Historique Total</th>
+                        <th>Action</th>
+                    </tr>
+                </thead>
+                <tbody id="playersList"></tbody>
+            </table>
+        </div>
+    </div>
+
+    <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-app-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-database-compat.js"></script>
+
+    <script>
+        const firebaseConfig = {
+            apiKey: "AIzaSyBMncA6AeSM3rY7BE20MudyEjO4Et3GFbY",
+            authDomain: "bingostream-pierot.firebaseapp.com",
+            databaseURL: "https://bingostream-pierot-default-rtdb.europe-west1.firebasedatabase.app",
+            projectId: "bingostream-pierot",
+            storageBucket: "bingostream-pierot.firebasestorage.app",
+            messagingSenderId: "848127391053",
+            appId: "1:848127391053:web:0146ef5a04bd53464a7304"
+        };
+
+        firebase.initializeApp(firebaseConfig);
+        const db = firebase.database();
+        const sheetId = "1cLz3yqcSrUE2Jet8pil48VfdQTjPODQFSER8P3_OY-U";
+
+        const MOD_USERS = {
+            "PierotStream": "pierotS2191",
+            "LaMiss26": "LaMiss1192",
+            "Remimodo26": "modo0826"
+        };
+
+        let validatedDefis = {};
+        let allowUserRegen = false;
+
+        let currentMod = localStorage.getItem('bingo_mod_session') || "";
+        if(currentMod && MOD_USERS[currentMod]) {
+            showModDashboard(currentMod);
+        }
+
+        function checkModAuth() {
+            const user = document.getElementById('modUser').value.trim();
+            const pass = document.getElementById('modPass').value.trim();
+
+            if(MOD_USERS[user] && MOD_USERS[user] === pass) {
+                localStorage.setItem('bingo_mod_session', user);
+                localStorage.setItem('bingo_user', user);
+                showModDashboard(user);
+            } else {
+                alert("Pseudo ou mot de passe modérateur incorrect !");
+            }
+        }
+
+        function showModDashboard(user) {
+            document.getElementById('authCard').classList.add('hidden');
+            document.getElementById('dashboard').classList.remove('hidden');
+            document.getElementById('loggedModName').textContent = `Modo: ${user}`;
+            document.getElementById('modLogoutBtn').classList.remove('hidden');
+
+            db.ref('validated_defis').on('value', snapshot => {
+                validatedDefis = snapshot.val() || {};
+                loadDefis();
+            });
+
+            db.ref('players').on('value', snapshot => {
+                renderPlayers(snapshot.val() || {});
+            });
+
+            db.ref('settings/allowRegen').on('value', snapshot => {
+                allowUserRegen = snapshot.val() || false;
+                const btn = document.getElementById('toggleRegenBtn');
+                if(allowUserRegen) {
+                    btn.textContent = "🎲 Bouton Régénérer : ACTIVÉ ✔";
+                    btn.style.background = "#00e676";
+                    btn.style.color = "#000";
+                } else {
+                    btn.textContent = "🎲 Bouton Régénérer : DÉSACTIVÉ ✖";
+                    btn.style.background = "#7928ca";
+                    btn.style.color = "#fff";
+                }
+            });
+        }
+
+        function goToMyGrid() {
+            if(currentMod) { localStorage.setItem('bingo_user', currentMod); }
+            window.location.href = "index.html";
+        }
+
+        function logoutMod() {
+            localStorage.removeItem('bingo_mod_session');
+            location.reload();
+        }
+
+        async function loadDefis() {
+            const url = `https://docs.google.com/spreadsheets/d/${sheetId}/gviz/tq?tqx=out:json&t=${new Date().getTime()}`;
+            const res = await fetch(url);
+            const text = await res.text();
+            const json = JSON.parse(text.substring(47, text.length - 2));
+
+            const container = document.getElementById('defisList');
+            container.innerHTML = "";
+
+            json.table.rows.forEach(row => {
+                const id = row.c[0] ? row.c[0].v.toString() : null;
+                const defi = row.c[1] ? row.c[1].v.toString() : null;
+                const actif = row.c[2] ? row.c[2].v.toString().toUpperCase() : "OUI";
+
+                if(id && defi && actif === "OUI") {
+                    const isValide = !!validatedDefis[id];
+                    const div = document.createElement('div');
+                    div.className = `defi-item ${isValide ? 'active' : ''}`;
+                    div.innerHTML = `
+                        <span><b>#${id}</b> ${defi}</span>
+                        <button class="btn-toggle" style="background:${isValide?'#ff007f':'#00e676'}; color:${isValide?'#fff':'#000'}" onclick="toggleDefi('${id}')">
+                            ${isValide ? 'Annuler' : 'Valider'}
+                        </button>
+                    `;
+                    container.appendChild(div);
+                }
+            });
+        }
+
+        function toggleDefi(id) {
+            if(validatedDefis[id]) { db.ref('validated_defis/' + id).remove(); } 
+            else { db.ref('validated_defis/' + id).set(true); }
+        }
+
+        function toggleUserRegen() {
+            db.ref('settings/allowRegen').set(!allowUserRegen);
+        }
+
+        async function fetchActiveDefis() {
+            const url = `https://docs.google.com/spreadsheets/d/${sheetId}/gviz/tq?tqx=out:json&t=${new Date().getTime()}`;
+            const res = await fetch(url);
+            const text = await res.text();
+            const json = JSON.parse(text.substring(47, text.length - 2));
+            const activeDefis = [];
+            json.table.rows.forEach(row => {
+                const id = row.c[0] ? row.c[0].v.toString() : null;
+                const defi = row.c[1] ? row.c[1].v.toString() : null;
+                const actif = row.c[2] ? row.c[2].v.toString().toUpperCase() : "OUI";
+                if(id && defi && actif === "OUI") activeDefis.push({ id: id, defi: defi });
+            });
+            return activeDefis;
+        }
+
+        async function resetAllGame() {
+            if(!confirm("⚠️ Veux-tu clôturer la partie, attribuer les victoires aux gagnants du classement et donner de nouvelles grilles à tout le monde ?")) return;
+
+            // 1. Calculer le classement final de la session
+            const playersSnapshot = await db.ref('players').once('value');
+            const players = playersSnapshot.val() || {};
+            const list = [];
+
+            Object.keys(players).forEach(name => {
+                list.push({
+                    name: name,
+                    bingoCount: players[name].bingoCount || 0,
+                    lastBingoTime: players[name].lastBingoTime || 0,
+                    winsFirst: players[name].winsFirst || 0,
+                    winsPodium: players[name].winsPodium || 0,
+                    participations: players[name].participations || 1
+                });
+            });
+
+            // Tri Chronologique
+            list.sort((a, b) => {
+                if (b.bingoCount !== a.bingoCount) return b.bingoCount - a.bingoCount;
+                if (a.bingoCount > 0 && b.bingoCount > 0) return a.lastBingoTime - b.lastBingoTime;
+                return 0;
+            });
+
+            // Attribuer les victoires de podium aux 3 premiers
+            if(list[0] && list[0].bingoCount > 0) {
+                await db.ref('players/' + list[0].name).update({ winsFirst: list[0].winsFirst + 1, winsPodium: list[0].winsPodium + 1 });
+            }
+            if(list[1] && list[1].bingoCount > 0) {
+                await db.ref('players/' + list[1].name).update({ winsPodium: list[1].winsPodium + 1 });
+            }
+            if(list[2] && list[2].bingoCount > 0) {
+                await db.ref('players/' + list[2].name).update({ winsPodium: list[2].winsPodium + 1 });
+            }
+
+            // 2. Vider les défis validés
+            await db.ref('validated_defis').remove();
+
+            // 3. Distribuer de nouvelles grilles et incrémenter les participations
+            const activeDefis = await fetchActiveDefis();
+
+            Object.keys(players).forEach(name => {
+                const shuffled = [...activeDefis].sort(() => 0.5 - Math.random());
+                const newGrid = shuffled.slice(0, 16);
+                db.ref('players/' + name).update({
+                    grid: newGrid,
+                    bingoCount: 0,
+                    lastBingoTime: 0,
+                    participations: (players[name].participations || 1) + 1
+                });
+            });
+
+            alert("🎉 Partie Archivée avec succès ! Les victoires du Podium ont été enregistrées et de nouvelles grilles sont distribuées !");
+        }
+
+        function renderPlayers(players) {
+            const tbody = document.getElementById('playersList');
+            tbody.innerHTML = "";
+
+            const keys = Object.keys(players);
+            if(keys.length === 0) {
+                tbody.innerHTML = "<tr><td colspan='5' style='text-align:center; opacity:0.6;'>Aucun joueur inscrit.</td></tr>";
+                return;
+            }
+
+            keys.forEach(name => {
+                const p = players[name];
+                const isOnline = p.online === true;
+                const tr = document.createElement('tr');
+
+                tr.innerHTML = `
+                    <td>
+                        <span class="status-dot ${isOnline ? 'status-online' : 'status-offline'}"></span>
+                        <b>${name}</b> ${isOnline ? '<span style="font-size:11px; color:#00e676;">(En ligne)</span>' : '<span style="font-size:11px; opacity:0.5;">(Hors ligne)</span>'}
+                    </td>
+                    <td><span class="pass-code">${p.password || 'Non défini'}</span></td>
+                    <td>${p.bingoCount > 0 ? `<span class="bingo-badge">🎉 ${p.bingoCount} Bingo(s)</span>` : '0 Bingo'}</td>
+                    <td>
+                        <span class="stats-badge">🕹️ ${p.participations || 1} Part.</span>
+                        <span class="stats-badge">🏆 ${p.totalBingos || 0} Bingos</span>
+                        <span class="stats-badge">🥇 ${p.winsFirst || 0} Victoires</span>
+                    </td>
+                    <td>
+                        <button class="btn-delete-user" onclick="deletePlayer('${name}')">Supprimer 🗑️</button>
+                    </td>
+                `;
+                tbody.appendChild(tr);
+            });
+        }
+
+        function deletePlayer(name) {
+            if(confirm(`❌ Veux-tu vraiment supprimer le joueur "${name}" de la liste ?`)) {
+                db.ref('players/' + name).remove();
+            }
+        }
+    </script>
+</body>
+</html>

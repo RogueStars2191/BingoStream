@@ -1,0 +1,112 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+    <meta charset="UTF-8">
+    <title>Stream Bingo Overlay - PierotStream</title>
+    <link href="https://fonts.googleapis.com/css2?family=Montserrat:wght@900&display=swap" rel="stylesheet">
+    <script src="https://cdn.jsdelivr.net/npm/canvas-confetti@1.6.0/dist/confetti.browser.min.js"></script>
+
+    <style>
+        * { box-sizing: border-box; }
+        body, html {
+            margin: 0; padding: 0; width: 100vw; height: 100vh;
+            overflow: hidden; background: transparent;
+            font-family: 'Montserrat', sans-serif;
+            display: flex; justify-content: center; align-items: flex-start;
+            padding-top: 50px;
+        }
+
+        .bingo-alert {
+            opacity: 0; transform: translateY(-50px) scale(0.8);
+            background: linear-gradient(135deg, rgba(255, 0, 127, 0.95), rgba(121, 40, 202, 0.95));
+            border: 3px solid #45f3ff; border-radius: 16px;
+            padding: 20px 40px; text-align: center; color: #ffffff;
+            box-shadow: 0 0 40px rgba(69, 243, 255, 0.8), 0 0 20px rgba(255, 0, 127, 0.8);
+            transition: all 0.5s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+            pointer-events: none;
+        }
+
+        .bingo-alert.show {
+            opacity: 1; transform: translateY(0) scale(1);
+        }
+
+        .bingo-alert h1 {
+            margin: 0; font-size: 38px; text-transform: uppercase;
+            letter-spacing: 2px; text-shadow: 0 0 10px rgba(0,0,0,0.5);
+        }
+
+        .bingo-alert p {
+            margin: 8px 0 0 0; font-size: 22px; color: #45f3ff;
+            font-weight: 900; text-transform: uppercase; text-shadow: 0 0 8px rgba(69, 243, 255, 0.6);
+        }
+    </style>
+</head>
+<body>
+
+    <div id="alertBox" class="bingo-alert">
+        <h1>🎉 BINGO ! 🎉</h1>
+        <p id="alertUser">PierotStream (x1 Bingo)</p>
+    </div>
+
+    <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-app-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-database-compat.js"></script>
+
+    <script>
+        const firebaseConfig = {
+            apiKey: "AIzaSyBMncA6AeSM3rY7BE20MudyEjO4Et3GFbY",
+            authDomain: "bingostream-pierot.firebaseapp.com",
+            databaseURL: "https://bingostream-pierot-default-rtdb.europe-west1.firebasedatabase.app",
+            projectId: "bingostream-pierot",
+            storageBucket: "bingostream-pierot.firebasestorage.app",
+            messagingSenderId: "848127391053",
+            appId: "1:848127391053:web:0146ef5a04bd53464a7304"
+        };
+
+        firebase.initializeApp(firebaseConfig);
+        const db = firebase.database();
+
+        let previousScores = {};
+        let isFirstLoad = true;
+
+        db.ref('players').on('value', snapshot => {
+            const players = snapshot.val() || {};
+
+            if (isFirstLoad) {
+                Object.keys(players).forEach(name => {
+                    previousScores[name] = players[name].bingoCount || 0;
+                });
+                isFirstLoad = false;
+                return;
+            }
+
+            Object.keys(players).forEach(name => {
+                const currentCount = players[name].bingoCount || 0;
+                const oldCount = previousScores[name] || 0;
+
+                if (currentCount > oldCount && currentCount > 0) {
+                    triggerBingoAlert(name, currentCount);
+                }
+                previousScores[name] = currentCount;
+            });
+        });
+
+        function triggerBingoAlert(username, count) {
+            const box = document.getElementById('alertBox');
+            const userText = document.getElementById('alertUser');
+            
+            userText.textContent = `${username.toUpperCase()} (x${count} Bingo${count > 1 ? 's' : ''})`;
+            box.classList.add('show');
+
+            confetti({
+                particleCount: 150,
+                spread: 90,
+                origin: { y: 0.3 }
+            });
+
+            setTimeout(() => {
+                box.classList.remove('show');
+            }, 6500);
+        }
+    </script>
+</body>
+</html>
