@@ -130,7 +130,7 @@
         <div class="card">
             <h3>⚙️ Contrôle de la Partie</h3>
             <div class="admin-controls">
-                <button class="btn-danger" onclick="resetAllGame()">🔄 Lancer une Nouvelle Partie (Reset)</button>
+                <button class="btn-danger" onclick="resetAllGame()">🔄 Archiver & Lancer une Nouvelle Partie</button>
                 <button id="toggleRegenBtn" class="btn-toggle-regen" onclick="toggleUserRegen()">🎲 Bouton Régénérer : DÉSACTIVÉ</button>
             </div>
         </div>
@@ -295,23 +295,50 @@
         }
 
         async function resetAllGame() {
-            if(!confirm("⚠️ Veux-tu réinitialiser la partie et redistribuer de nouvelles grilles ?")) return;
+            if(!confirm("⚠️ Veux-tu réinitialiser la partie, attribuer les victoires aux gagnants et redistribuer de nouvelles grilles ?")) return;
 
-            await db.ref('validated_defis').remove();
-            const activeDefis = await fetchActiveDefis();
             const playersSnapshot = await db.ref('players').once('value');
             const players = playersSnapshot.val() || {};
+            
+            // Trouver le gagnant de la session (celui qui a le plus de bingos)
+            let topPlayer = null;
+            let maxBingos = 0;
 
             Object.keys(players).forEach(name => {
+                const bCount = players[name].bingoCount || 0;
+                if (bCount > maxBingos) {
+                    maxBingos = bCount;
+                    topPlayer = name;
+                }
+            });
+
+            // Vider les défis validés
+            await db.ref('validated_defis').remove();
+            
+            const activeDefis = await fetchActiveDefis();
+
+            // Mettre à jour les stats globales de chaque joueur
+            Object.keys(players).forEach(name => {
+                const currentSessionBingos = players[name].bingoCount || 0;
+                const oldTotalBingos = players[name].totalBingos || 0;
+                const oldParticipations = players[name].participations || 1;
+                const oldWins = players[name].winsFirst || 0;
+
+                const isWinner = (name === topPlayer && maxBingos > 0);
+
                 const shuffled = [...activeDefis].sort(() => 0.5 - Math.random());
                 const newGrid = shuffled.slice(0, 16);
+
                 db.ref('players/' + name).update({
                     grid: newGrid,
-                    bingoCount: 0
+                    bingoCount: 0,
+                    totalBingos: oldTotalBingos + currentSessionBingos,
+                    participations: oldParticipations + 1,
+                    winsFirst: isWinner ? (oldWins + 1) : oldWins
                 });
             });
 
-            alert("🎉 Nouvelle Partie Lancée !");
+            alert("🎉 Partie Archivée ! Le classement global et les victoires ont été mis à jour.");
         }
 
         function renderPlayers(players) {
