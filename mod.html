@@ -319,10 +319,14 @@
 
             // Mettre à jour les stats globales de chaque joueur
             Object.keys(players).forEach(name => {
-                const currentSessionBingos = players[name].bingoCount || 0;
-                const oldTotalBingos = players[name].totalBingos || 0;
-                const oldParticipations = players[name].participations || 1;
-                const oldWins = players[name].winsFirst || 0;
+                const p = players[name];
+                const currentSessionBingos = p.bingoCount || 0;
+                const oldTotalBingos = p.totalBingos || 0;
+                const oldParticipations = p.participations || 0;
+                const oldWins = p.winsFirst || 0;
+
+                // VÉRIFICATION : Le joueur a-t-il vraiment joué cette session ?
+                const hasPlayed = (p.grid && p.grid.length > 0) || currentSessionBingos > 0;
 
                 const isWinner = (name === topPlayer && maxBingos > 0);
 
@@ -330,15 +334,15 @@
                 const newGrid = shuffled.slice(0, 16);
 
                 db.ref('players/' + name).update({
-                    grid: newGrid,
+                    grid: hasPlayed ? newGrid : null,
                     bingoCount: 0,
                     totalBingos: oldTotalBingos + currentSessionBingos,
-                    participations: oldParticipations + 1,
+                    participations: hasPlayed ? (oldParticipations + 1) : oldParticipations,
                     winsFirst: isWinner ? (oldWins + 1) : oldWins
                 });
             });
 
-            alert("🎉 Partie Archivée ! Le classement global et les victoires ont été mis à jour.");
+            alert("🎉 Partie Archivée ! Seuls les joueurs ayant joué verront leur compteur de participation augmenter.");
         }
 
         function renderPlayers(players) {
